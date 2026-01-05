@@ -119,6 +119,6 @@ func (self *Worker) runWorker(
 }
 
 type Data struct {
-	Html string
-	Url  string
+	Html string `json:"html"`
+	Url  string `json:"url"`
 }
