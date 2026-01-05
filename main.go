@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"time"
 
@@ -8,11 +9,13 @@ import (
 )
 
 func main() {
-	w := internals.Init(10)
+	workersCount := flag.Uint("w", 10, "Amount of simultaneously running workers. 10 by default.")
+	startUrl := flag.String("url", "https://gobyexample.com/structs", "Start crawling from this url.")
 
+	w := internals.Init(uint32(*workersCount))
 	w.Run(func(d internals.Data) {
 		fmt.Printf("Found some data! url: %v\n", d.Url)
-	}, "https://gobyexample.com/structs")
+	}, *startUrl)
 	defer w.Close()
 
 	for {

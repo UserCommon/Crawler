@@ -41,26 +41,24 @@ func (self *Crawler) Close() {
 func (self *Crawler) Run(on_write func(Data), startURL string) error {
 	on_error := func(e error) { log.Printf("error: %v", e) }
 
-	// Этот WaitGroup будет считать ЗАДАЧИ (ссылки), а не воркеров
 	taskWg := &sync.WaitGroup{}
 
-	// Запускаем воркеров (пусть они работают постоянно)
 	for _, w := range self.Workers {
 		go w.runWorker(self.Tokens, self.UrlPool, self.DataPool, on_error, taskWg)
 	}
 
-	// Отправляем первую ссылку
+	// Send first url
 	taskWg.Add(1)
 	self.UrlPool <- startURL
 
-	// Отдельная горутина: когда ВСЕ задачи (ссылки) обработаны — закрываем всё
+	// No more url
 	go func() {
 		taskWg.Wait()
-		close(self.UrlPool)  // Это заставит воркеров выйти из цикла range
-		close(self.DataPool) // Это остановит цикл on_write
+		close(self.UrlPool)
+		close(self.DataPool)
 	}()
 
-	// Читаем результаты
+	// results
 	for data := range self.DataPool {
 		on_write(data)
 	}
