@@ -27,7 +27,7 @@ func Init(workers uint32) *Crawler {
 	return &Crawler{
 		Workers:  workers_array,
 		DataPool: make(chan Data, 1024),
-		UrlPool:  make(chan string, 4096),
+		UrlPool:  make(chan string, 1024),
 		Tokens:   make(chan struct{}, workers),
 	}
 }

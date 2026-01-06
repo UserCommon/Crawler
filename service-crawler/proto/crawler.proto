@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package crawler;
+
+option go_package = "./proto";
+
+service CrawlerService {
+  rpc GetPage(PageRequest) returns (PageResponse);
+}
+
+message PageRequest {
+  int64 id = 1;
+}
+
+message PageResponse {
+  int64 id = 1;
+  string url = 2;
+  string html = 3;
+}
