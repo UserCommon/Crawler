@@ -11,13 +11,13 @@ services:
 
   postgres-llm:
     image: postgres:15-alpine
-    container_name: crawler_db
+    container_name: llm_db
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: crawler_data
+      POSTGRES_DB: llm_data
     ports:
-      - "5432:5433"
+      - "5433:5433"
 
   zookeeper:
     image: wurstmeister/zookeeper:latest

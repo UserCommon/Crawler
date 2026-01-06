@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 
-	"net/http"
 	"os"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/usercommon/crawler/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func main() {
@@ -28,14 +28,7 @@ func main() {
 	dbConn := db.InitDB()
 	w := internals.Init(uint32(*workersCount))
 	defer w.Close()
-	go func() {
-		http.HandleFunc("/send_to_kafka", func(w http.ResponseWriter, r *http.Request) {
-			kafka.HandleSendToKafka(w, r, dbConn)
-			// Тот код, который берет ID из БД, шлет в Кафку
-			// и делает UPDATE pages SET is_sent = true
-		})
-		log.Fatal(http.ListenAndServe(":8080", nil))
-	}()
+
 	go startGRPC(dbConn)
 	err := w.Run(func(d internals.Data) {
 		for {
@@ -70,7 +63,6 @@ func main() {
 	for {
 		time.Sleep(time.Second * 10)
 	}
-	fmt.Printf("Ended!")
 }
 
 type crawlerServer struct {
@@ -90,6 +82,18 @@ func (s *crawlerServer) GetPage(ctx context.Context, req *proto.PageRequest) (*p
 		Url:  page.URL,
 		Html: page.RawHTML,
 	}, nil
+}
+
+func (s *crawlerServer) SendToKafka(ctx context.Context, in *emptypb.Empty) (*emptypb.Empty, error) {
+	log.Println("grpc: got request")
+
+	_, err := kafka.SendToKafka(ctx, s.db)
+	if err != nil {
+		log.Printf("Failed to refill: %v\n", err)
+		return nil, fmt.Errorf("failed to refill queue: %v", err)
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func startGRPC(db *sqlx.DB) {
