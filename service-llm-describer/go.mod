@@ -6,8 +6,12 @@ toolchain go1.24.11
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
+	github.com/jmoiron/sqlx v1.4.0
+	github.com/lib/pq v1.10.9
+	github.com/pgvector/pgvector-go v0.3.0
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/tmc/langchaingo v0.1.14
+	golang.org/x/sync v0.18.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.10
 )

@@ -10,14 +10,14 @@ services:
       - "5432:5432"
 
   postgres-llm:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: llm_db
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: llm_data
     ports:
-      - "5433:5433"
+      - "5433:5432"
 
   zookeeper:
     image: wurstmeister/zookeeper:latest
@@ -35,13 +35,3 @@ services:
       KAFKA_CREATE_TOPICS: "web_pages_raw:1:1" # Сразу создаст топик
     depends_on:
       - zookeeper
-
-  kafdrop:
-    image: obsidiandynamics/kafdrop:latest
-    container_name: kafdrop
-    ports:
-      - "9000:9000"
-    environment:
-      KAFKA_BROKERCONNECT: kafka:9092
-    depends_on:
-      - kafka

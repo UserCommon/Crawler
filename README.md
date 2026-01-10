@@ -1,4 +1,5 @@
 # Crawler
+Crawl and Analyze!
 
 ## About
 
@@ -17,5 +18,8 @@ go run main.go -w * -url *
 
 ## TODO
 - [x] Framework for project
-- [ ] Add LLM processing
-- [ ] Add database for recording websites
+- [x] Add LLM processing
+- [x] Add database for recording websites
+- [ ] Add RAG search
+- [ ] Add validation for llm-generated json
+- [ ] Add frontend

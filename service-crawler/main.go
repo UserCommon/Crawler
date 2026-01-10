@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 
 	"os"
 	"time"
@@ -22,15 +22,21 @@ import (
 )
 
 func main() {
-	workersCount := flag.Uint("w", 10, "Amount of simultaneously running workers. 10 by default.")
-	startUrl := flag.String("url", "https://gobyexample.com/structs", "Start crawling from this url.")
+	workersCount, err := strconv.Atoi(os.Getenv("SERVICE_CRAWLER_WORKERS"))
+	if err != nil {
+		log.Fatalf("Something wrong with env var: SERVICE_CRAWLER_WORKERS")
+	}
+	startUrl := os.Getenv("STARTING_POINT_URL")
+	fmt.Printf("Starting at: %s, with %d amount of workers\n", startUrl, workersCount)
 
 	dbConn := db.InitDB()
-	w := internals.Init(uint32(*workersCount))
+
+	fmt.Println(startUrl)
+	w := internals.Init(uint32(workersCount))
 	defer w.Close()
 
 	go startGRPC(dbConn)
-	err := w.Run(func(d internals.Data) {
+	err = w.Run(func(d internals.Data) {
 		for {
 			var count int
 			// Считаем сколько еще не отправлено в Кафку
@@ -55,7 +61,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("Failed to save to DB: %v\n", err)
 		}
-	}, *startUrl)
+	}, startUrl)
 	if err != nil {
 		log.Fatal(err)
 	}

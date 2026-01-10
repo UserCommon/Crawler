@@ -39,7 +39,7 @@ func (self *Crawler) Close() {
 }
 
 func (self *Crawler) Run(on_write func(Data), startURL string) error {
-	on_error := func(e error) { log.Printf("error: %v", e) }
+	on_error := func(e error, url string) { log.Printf("error: %v, at %s\n", e, url) }
 
 	taskWg := &sync.WaitGroup{}
 
@@ -80,7 +80,7 @@ func (self *Worker) runWorker(
 	tokens chan struct{},
 	url_pool chan string,
 	data_pool chan<- Data,
-	on_error func(error),
+	on_error func(error, string),
 	taskWg *sync.WaitGroup, // Передаем счетчик задач
 ) {
 	// Токен ограничивает количество ОДНОВРЕМЕННЫХ запросов в сеть
@@ -90,7 +90,7 @@ func (self *Worker) runWorker(
 
 		html, err := html_utils.FetchHtml(url)
 		if err != nil {
-			on_error(err)
+			on_error(err, url)
 			<-tokens
 			taskWg.Done() // Ошибка — это тоже завершение задачи
 			continue
