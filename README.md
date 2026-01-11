@@ -20,6 +20,6 @@ go run main.go -w * -url *
 - [x] Framework for project
 - [x] Add LLM processing
 - [x] Add database for recording websites
-- [ ] Add RAG search
+- [x] Add RAG search
 - [ ] Add validation for llm-generated json
-- [ ] Add frontend
+- [x] Add frontend
