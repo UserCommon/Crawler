@@ -13,7 +13,15 @@ The idea which making this crawler unique? is:
 ## How to use
 
 ```bash
-go run main.go -w * -url *
+# launch kafka and postgres services
+docker compose up -d
+# Run llms
+echo "Starting LLM service..."
+cd service-llm-describer && go run main.go & 
+
+# Run crawler
+echo "Starting Crawler..."
+cd ../service-crawler && go run main.go -w * -url *
 ```
 
 ## TODO
