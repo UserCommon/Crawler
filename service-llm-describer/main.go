@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/usercommon/llm-describer/internals/api"
 	"github.com/usercommon/llm-describer/internals/db"
 	"github.com/usercommon/llm-describer/internals/repository"
 	"github.com/usercommon/llm-describer/internals/worker"
@@ -70,29 +72,42 @@ func main() {
 	}
 
 	// 5. Main loop: Fetch from Kafka and dispatch to workers
-	for {
-		readCtx, readCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		msg, err := reader.ReadMessage(readCtx)
+	go func() {
+		for {
+			readCtx, readCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			msg, err := reader.ReadMessage(readCtx)
 
-		// TODO: figure out what's wrong.
-		_, err = crawlerClient.SendToKafka(context.Background(), &emptypb.Empty{})
-		if err != nil {
-			log.Printf("shit")
-		}
-		readCancel()
-
-		if err != nil {
-			log.Printf("Kafka read error: %v. Sending refill request to Crawler.", err)
-			_, err := crawlerClient.SendToKafka(context.Background(), &emptypb.Empty{})
+			// TODO: figure out what's wrong.
+			_, err = crawlerClient.SendToKafka(context.Background(), &emptypb.Empty{})
 			if err != nil {
-				log.Printf("SendToKafka refill error: %v", err)
+				time.Sleep(10 * time.Second)
+				log.Printf("Unable to get messages from kafka")
 			}
-			time.Sleep(10 * time.Second)
-			continue
-		}
+			readCancel()
 
-		// Send task to the pool
-		jobs <- msg
+			if err != nil {
+				log.Printf("Kafka read error: %v. Sending refill request to Crawler.", err)
+				_, err := crawlerClient.SendToKafka(context.Background(), &emptypb.Empty{})
+				if err != nil {
+					log.Printf("SendToKafka refill error: %v", err)
+				}
+				time.Sleep(10 * time.Second)
+				continue
+			}
+
+			// Send task to the pool
+			jobs <- msg
+		}
+	}()
+
+	// Http api
+	mux := http.NewServeMux()
+	apiServer := api.NewAPI(proc, dbConn)
+	apiServer.RegisterRoutes(mux)
+
+	log.Printf("API started on :8089")
+	if err := http.ListenAndServe(":8089", mux); err != nil {
+		log.Fatalf("Unable to start http server: %v", err)
 	}
 }
 

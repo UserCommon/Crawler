@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>AI Crawler Search</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 min-h-screen">
+        <div class="max-w-4xl mx-auto py-12 px-4">
+            <h1 class="text-4xl font-bold text-center text-blue-600 mb-8">
+                AI Crawler Search
+            </h1>
+
+            <div class="flex gap-2 mb-8 shadow-lg bg-white p-2 rounded-xl">
+                <input
+                    type="text"
+                    id="query"
+                    placeholder="Введите ваш запрос..."
+                    class="flex-1 p-3 outline-none text-lg"
+                />
+                <button
+                    onclick="search('ask')"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                >
+                    Спросить ИИ
+                </button>
+                <button
+                    onclick="search('search')"
+                    class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition"
+                >
+                    Поиск
+                </button>
+            </div>
+
+            <div
+                id="ai-response"
+                class="hidden mb-8 p-6 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg"
+            >
+                <h2 class="font-bold text-blue-800 mb-2 italic">
+                    Ответ нейронки (Nemotron):
+                </h2>
+                <p id="answer-text" class="text-gray-800 leading-relaxed"></p>
+            </div>
+
+            <div
+                id="results"
+                class="space-y-4 text-gray-800 leading-relaxed"
+            ></div>
+        </div>
+
+        <script>
+            async function search(type) {
+                const query = document.getElementById("query").value;
+                const resultsDiv = document.getElementById("results");
+                const aiArea = document.getElementById("ai-response");
+
+                resultsDiv.innerHTML =
+                    '<p class="text-center text-gray-500">Думаю...</p>';
+                aiArea.classList.add("hidden");
+
+                try {
+                    const res = await fetch(`/${type}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ query: query, limit: 5 }),
+                    });
+                    const data = await res.json();
+
+                    // Очистка
+                    resultsDiv.innerHTML = "";
+
+                    // Если это RAG ответ
+                    if (type === "ask") {
+                        aiArea.classList.remove("hidden");
+                        document.getElementById("answer-text").innerText =
+                            data.answer;
+                        renderSources(data.sources);
+                    } else {
+                        renderSources(data);
+                    }
+                } catch (err) {
+                    resultsDiv.innerHTML = `<p class="text-red-500">Ошибка: ${err.message}</p>`;
+                }
+            }
+
+            function renderSources(sources) {
+                const resultsDiv = document.getElementById("results");
+                resultsDiv.innerHTML = ""; // Очищаем "Думаю..."
+
+                if (!sources || sources.length === 0) {
+                    resultsDiv.innerHTML =
+                        '<p class="text-center text-gray-500">Ничего не найдено.</p>';
+                    return;
+                }
+                sources.forEach((item) => {
+                    console.log(item);
+                    // 1. Проверяем, какой ключ пришел: ContentAnalysis или content_analysis
+                    const rawContent =
+                        item.ContentAnalysis || item.content_analysis;
+
+                    let analysisData = {};
+                    if (rawContent) {
+                        try {
+                            // Если это уже объект — берем его, если строка — парсим
+                            analysisData =
+                                typeof rawContent === "string"
+                                    ? JSON.parse(rawContent)
+                                    : rawContent;
+                        } catch (e) {
+                            console.error(
+                                "Ошибка парсинга для",
+                                item.Url || item.url,
+                                e,
+                            );
+                            analysisData = { summary: rawContent }; // Фолбек
+                        }
+                    }
+
+                    // 2. Рендерим, учитывая заглавные буквы из твоего лога
+                    resultsDiv.innerHTML += `
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-4">
+                            <a href="${item.Url || item.url}" target="_blank" class="text-blue-600 font-bold hover:underline text-lg">
+                                ${item.Url || item.url}
+                            </a>
+
+                            <div class="mt-3 text-gray-700">
+                                <p class="leading-relaxed">
+                                    ${analysisData.summary || "Описание не найдено"}
+                                </p>
+                            </div>
+
+                            <div class="mt-4 text-xs text-gray-400">
+                                Distance: ${item.Distance !== undefined ? item.Distance.toFixed(4) : item.distance || "N/A"}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        </script>
+    </body>
+</html>
